@@ -1,0 +1,47 @@
+id: vriksh-git-101
+name: "Git Fundamentals: Your First Repository"
+description: "Learn the basics of Git by creating a repository, adding a feature branch, and proposing a Pull Request in Gitea."
+credits_cost: 5
+estimated_duration_minutes: 45
+image: gitea/gitea:1.21.6
+target_port: 3000
+init_script: "sleep 5 && docker exec -u git {container_name} gitea admin user create --username student --password vriksh --email student@vriksh.cloud --must-change-password=false || true"
+environment:
+  - USER_UID=1000
+  - USER_GID=1000
+  - GITEA__database__DB_TYPE=sqlite3
+  - GITEA__database__PATH=/data/gitea/gitea.db
+  - GITEA__security__INSTALL_LOCK=true
+  - GITEA__service__REQUIRE_SIGNIN_VIEW=true
+  - GITEA__admin__DISABLE_REGULAR_ORG_CREATION=true
+  - GITEA__security__ENABLE_X_FRAME_OPTIONS=false
+  - GITEA__cors__ENABLED=true
+  - GITEA__cors__ALLOW_DOMAIN=*
+  - GITEA__server__DOMAIN={lab_url}
+  - GITEA__server__ROOT_URL=https://{lab_url}/
+  - GITEA__server__SSH_PORT=2222
+  - GITEA__service__DISABLE_REGISTRATION=true
+tasks:
+  - id: create_repo
+    title: "Create a repository"
+    description: "Login with `student / vriksh` and create a new public repository named `hello-world`."
+    points: 20
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/repos/student/hello-world"
+      expected_output: "200"
+
+  - id: create_branch
+    title: "Create a feature branch"
+    description: "Create a new branch named `feature-auth` from the main branch."
+    points: 30
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/repos/student/hello-world/branches/feature-auth"
+      expected_output: "200"
+
+  - id: open_pr
+    title: "Open a Pull Request"
+    description: "Open a Pull Request from `feature-auth` into `main`."
+    points: 50
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh http://localhost:3000/api/v1/repos/student/hello-world/pulls | grep -c '\"state\":\"open\"'"
+      expected_output: "1"

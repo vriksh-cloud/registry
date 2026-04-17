@@ -1,0 +1,45 @@
+id: vriksh-git-103
+name: 'Git 103: Resolving Conflicts'
+description: Simulate and resolve a git merge conflict within Gitea.
+credits_cost: 15
+estimated_duration_minutes: 90
+image: gitea/gitea:1.21.6
+target_port: 3000
+init_script: "sleep 5 && docker exec -u git {container_name} gitea admin user create --username student --password vriksh --email student@vriksh.cloud --must-change-password=false || true"
+environment:
+  - USER_UID=1000
+  - USER_GID=1000
+  - GITEA__database__DB_TYPE=sqlite3
+  - GITEA__database__PATH=/data/gitea/gitea.db
+  - GITEA__security__INSTALL_LOCK=true
+  - GITEA__service__REQUIRE_SIGNIN_VIEW=true
+  - GITEA__admin__DISABLE_REGULAR_ORG_CREATION=true
+  - GITEA__security__ENABLE_X_FRAME_OPTIONS=false
+  - GITEA__cors__ENABLED=true
+  - GITEA__cors__ALLOW_DOMAIN=*
+  - GITEA__server__DOMAIN={lab_url}
+  - GITEA__server__ROOT_URL=https://{lab_url}/
+  - GITEA__server__SSH_PORT=2222
+  - GITEA__service__DISABLE_REGISTRATION=true
+tasks:
+  - id: create_repo_103
+    title: Create a new repository
+    description: Create a public repository named `conflict-lab`.
+    points: 20
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/repos/student/conflict-lab"
+      expected_output: "200"
+  - id: open_conflict_pr
+    title: Create a conflicting Pull Request
+    description: Create two branches modifying the same file differently, and open a PR that is in a conflicting state.
+    points: 40
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh http://localhost:3000/api/v1/repos/student/conflict-lab/pulls | grep -c '\"state\":\"open\"'"
+      expected_output: "1"
+  - id: resolve_and_merge
+    title: Resolve Conflict and Merge
+    description: Resolve the conflict using the Web UI or locally, and merge the PR.
+    points: 40
+    validation:
+      command: "docker exec {container_name} curl -s -u student:vriksh http://localhost:3000/api/v1/repos/student/conflict-lab/pulls?state=closed | grep -c '\"state\":\"closed\"'"
+      expected_output: "1"
